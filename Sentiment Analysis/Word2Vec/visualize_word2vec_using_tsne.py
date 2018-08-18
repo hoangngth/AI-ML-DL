@@ -27,7 +27,7 @@ def display_closestwords_tsne(model, word, num_sim):
         plt.scatter(x, y, c=color)
         plt.annotate(label, xy=(x, y), xytext=(0, 0), textcoords='offset points')
 
-    plt.title('Scatter plot for "%s"' %word)
+    plt.title('Scatter plot for similar words of "%s"' %word)
     plt.show()
     
 word = input("Enter word: ")
