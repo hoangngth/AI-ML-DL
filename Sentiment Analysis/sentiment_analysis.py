@@ -115,6 +115,7 @@ print('ID Matrix completed')
 
 ids = np.load('C:/Users/Vaio/Desktop/Sentiment Analysis/Datasets/ID_matrix/VNESEidsmatrix.npy') # numFiles x maxSeqLength
 
+'''
 # Helper functions
 def getTrainBatch():
     labels = []
@@ -204,5 +205,6 @@ iterations = 10
 for i in range(iterations):
     nextBatch, nextBatchLabels = getTestBatch();
     print("Accuracy for this batch:", (sess.run(accuracy, {input_data: nextBatch, labels: nextBatchLabels})) * 100)
+'''
 
 print("Training time: %s seconds" % (time.time() - start_time))
