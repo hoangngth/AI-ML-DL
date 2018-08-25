@@ -1,5 +1,4 @@
 # Perform Sentiment Analysis
-# This file is not completed.
 
 import time
 import gensim
@@ -10,8 +9,8 @@ import matplotlib.pyplot as plt
 import re
 from random import randint
 import tensorflow as tf
-import datetime
 
+maxSeqLength = 200 # This will cover most of word in each file
 start_time = time.time()
 print("Training Sentiment Analysis Model...")
 
@@ -38,22 +37,33 @@ negativeFiles = [dirNeg + f for f in listdir(dirNeg) if isfile(join(dirNeg, f))]
 # Count number of words in each file
 print('Calculating words in each file and number of files...')
 numWords = []
+labels = []
+numPF, numNF = 0, 0
 for pf in positiveFiles:
     with open(pf, "r", encoding='utf-8') as f:
         line=f.readline()
         counter = len(line.split())
-        numWords.append(counter)       
+        numWords.append(counter)
+        labels.append(1)
+        numPF += 1
 
 for nf in negativeFiles:
     with open(nf, "r", encoding='utf-8') as f:
         line=f.readline()
         counter = len(line.split())
         numWords.append(counter)  
+        labels.append(0)
+        numNF += 1
 
+labels = np.array(labels)
 numFiles = len(numWords)
+print('The total number of positive file is', numPF)
+print('The total number of positive file is', numNF)
 print('The total number of files is', numFiles)
 print('The total number of words in the files is', sum(numWords))
 print('The average number of words in the files is', sum(numWords)/len(numWords))
+print('Finished labeling %d files' %len(labels))
+
 
 # Draw histogram of words in file
 plt.hist(numWords, 50)
@@ -61,9 +71,6 @@ plt.xlabel('Sequence Length')
 plt.ylabel('Frequency')
 plt.axis([0, 1200, 0, 8000])
 plt.show()
-
-maxSeqLength = 200 # This will cover most of word in each file
-numDimensions = wordVectors.shape[1] # The dimension of every word's vector
 
 # Text cleaning
 def clean_text(text):
@@ -74,8 +81,8 @@ def clean_text(text):
     return text
 
 # Reviews x maxSeqLength matrix (30000x200)
-print('Training ID Matrix...')
-ids = np.zeros((numFiles, maxSeqLength), dtype='int32')
+print('Training Feature Matrix...')
+features = np.zeros((numFiles, maxSeqLength), dtype='int32')
 fileCounter = 0
 for pf in positiveFiles:
    with open(pf, "r", encoding='utf-8') as f:
@@ -85,9 +92,9 @@ for pf in positiveFiles:
        split = cleanedLine.split()
        for word in split:
            try:
-               ids[fileCounter][indexCounter] = wordList.index(word)
+               features[fileCounter][indexCounter] = wordList.index(word)
            except ValueError:
-               ids[fileCounter][indexCounter] = randint(0, len(wordList)-1) #Vector for unkown words
+               features[fileCounter][indexCounter] = randint(0, len(wordList)-1) #Vector for unkown words
            indexCounter = indexCounter + 1
            if indexCounter >= maxSeqLength:
                break
@@ -102,109 +109,134 @@ for nf in positiveFiles:
        split = cleanedLine.split()
        for word in split:
            try:
-               ids[fileCounter][indexCounter] = wordList.index(word)
+               features[fileCounter][indexCounter] = wordList.index(word)
            except ValueError:
-               ids[fileCounter][indexCounter] = randint(0, len(wordList)-1) #Vector for unkown words
+               features[fileCounter][indexCounter] = randint(0, len(wordList)-1) #Vector for unkown words
            indexCounter = indexCounter + 1
            if indexCounter >= maxSeqLength:
                break
        fileCounter = fileCounter + 1 
 
-np.save('C:/Users/Vaio/Desktop/Sentiment Analysis/Datasets/ID_matrix/VNESEidsmatrix.npy', ids)
-print('ID Matrix completed')
+np.save('C:/Users/Vaio/Desktop/Sentiment Analysis/Datasets/features_matrix/VNESEfeaturesmatrix.npy', features)
+print('Feature Matrix completed')
+features = np.load('C:/Users/Vaio/Desktop/Sentiment Analysis/Datasets/features_matrix/VNESEfeaturesmatrix.npy') # numFiles x maxSeqLength
 
-ids = np.load('C:/Users/Vaio/Desktop/Sentiment Analysis/Datasets/ID_matrix/VNESEidsmatrix.npy') # numFiles x maxSeqLength
+# Training set and Validation set splitting
+split_fractor = 0.8
+split_index = int(split_fractor * len(features)) # 24000
+splitter = len(features)//2 # 15000
 
-'''
-# Helper functions
-def getTrainBatch():
-    labels = []
-    arr = np.zeros([batchSize, maxSeqLength])
-    for i in range(batchSize):
-        if (i % 2 == 0): 
-            num = randint(1,11499)
-            labels.append([1,0])
-        else:
-            num = randint(13499,24999)
-            labels.append([0,1])
-        arr[i] = ids[num-1:num]
-    return arr, labels
+train_x_pos, val_x_pos = features[:(split_index//2)], features[(split_index//2):splitter] # :12000, 12000:15000
+train_x_neg, val_x_neg = features[splitter:int(split_index + splitter * (1-split_fractor))], features[int(split_index + splitter * (1-split_fractor)):] # 15000:(24000+3000), (24000+3000): 
+train_x, val_x = np.append(train_x_pos, train_x_neg, axis=0), np.append(val_x_pos, val_x_neg, axis=0)
 
-def getTestBatch():
-    labels = []
-    arr = np.zeros([batchSize, maxSeqLength])
-    for i in range(batchSize):
-        num = randint(11499,13499)
-        if (num <= 12499):
-            labels.append([1,0])
-        else:
-            labels.append([0,1])
-        arr[i] = ids[num-1:num]
-    return arr, labels
+train_y_pos, val_y_pos = labels[:(split_index//2)], labels[(split_index//2):splitter] # :12000, 12000:15000
+train_y_neg, val_y_neg = labels[splitter:int(split_index + splitter * (1-split_fractor))], labels[int(split_index + splitter * (1-split_fractor)):] # 15000:(24000+3000), (24000+3000): 
+train_y, val_y = np.append(train_y_pos, train_y_neg), np.append(val_y_pos, val_y_neg)
 
-# Implement RNN
-batchSize = 32
-lstmUnits = 64
-numClasses = 2
-iterations = 100000
+print("\t\t\tFeature Shapes:")
+print("Train set: \t\t{}".format(train_x.shape), 
+      "\nValidation set: \t{}".format(val_x.shape))
+print("Label set: \t\t{}".format(train_y.shape), 
+      "\nValidation label set: \t{}".format(val_y.shape))
 
-labels = tf.placeholder(tf.float32, [batchSize, numClasses])
-input_data = tf.placeholder(tf.int32, [batchSize, maxSeqLength])
-data = tf.Variable(tf.zeros([batchSize, maxSeqLength, numDimensions]),dtype=tf.float32)
-data = tf.nn.embedding_lookup(wordVectors,input_data) # Lookup for word vectos. Return batchSize x maxSeqLength x numDimensions
+lstm_units = 64
+lstm_layers = 2
+batch_size = 256
+learning_rate = 0.005
+n_words = len(wordList)
+embed_size = wordVectors.shape[1] # The dimension of every word's vector
 
-lstmCell = tf.contrib.rnn.BasicLSTMCell(lstmUnits)
-lstmCell = tf.contrib.rnn.DropoutWrapper(cell=lstmCell, output_keep_prob=0.8)
-value, _ = tf.nn.dynamic_rnn(lstmCell, data, dtype=tf.float32)
+# Create Graph Object
+tf.reset_default_graph()
+with tf.name_scope('input'):
+    inputs_ = tf.placeholder(tf.int32, [None, None], name = 'input')
+    labels_ = tf.placeholder(tf.int32, [None, None], name = 'label')
+    keep_prob = tf.placeholder(tf.float32, name = 'keep_prob')
+    
+with tf.name_scope('embeddings'):
+    embedding = tf.Variable(tf.random_uniform((n_words, embed_size), -1, 1))
+    embed = tf.nn.embedding_lookup(embedding, inputs_)
+    
+def lstm_cell():
+    cell = tf.contrib.rnn.BasicLSTMCell(lstm_units)
+    cell = tf.contrib.rnn.DropoutWapper(cell, output_keep_prob=keep_prob)
+    return cell
+    
+with tf.name_scope("RNN_layers"):
+    cell = tf.contrib.rnn.MultiRNNCell([lstm_cell() for layer in range(lstm_layers)])
+    initial_state = cell.zero_state(batch_size, tf.float32)
+    
+with tf.name_scope("RNN_forward"):
+    outputs, final_state = tf.nn.dynamic_rnn(cell, embed, initial_state=initial_state)
+    
+with tf.name_scope('predictions'):
+    predictions = tf.contrib.layers.fully_connected(outputs[:, -1], 1, activation_fn=tf.sigmoid) # Sigmoid/Tanh/Softsign
+    tf.summary.histogram('predictions', predictions)
+with tf.name_scope('cost'):
+    cost = tf.losses.mean_squared_error(labels_, predictions)
+    tf.summary.scalar('cost', cost)
 
-weight = tf.Variable(tf.truncated_normal([lstmUnits, numClasses]))
-bias = tf.Variable(tf.constant(0.1, shape=[numClasses]))
-value = tf.transpose(value, [1, 0, 2])
-last = tf.gather(value, int(value.get_shape()[0]) - 1)
-prediction = (tf.matmul(last, weight) + bias)
+with tf.name_scope('train'):
+    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cost)
 
-correctPred = tf.equal(tf.argmax(prediction,1), tf.argmax(labels,1))
-accuracy = tf.reduce_mean(tf.cast(correctPred, tf.float32))
-
-loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=prediction, labels=labels))
-optimizer = tf.train.AdamOptimizer().minimize(loss)
-
-sess = tf.InteractiveSession()
-saver = tf.train.Saver()
-sess.run(tf.global_variables_initializer())
-
-tf.summary.scalar('Loss', loss)
-tf.summary.scalar('Accuracy', accuracy)
 merged = tf.summary.merge_all()
-logdir = "C:/Users/Vaio/Desktop/Sentiment Analysis/tensorboard/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
-writer = tf.summary.FileWriter(logdir, sess.graph)
 
-# LSTM training process
-print('Training LSTM...')
-for i in range(iterations):
-    #Next Batch of reviews
-   nextBatch, nextBatchLabels = getTrainBatch();
-   sess.run(optimizer, {input_data: nextBatch, labels: nextBatchLabels})
+with tf.name_scope('validation'):
+    correct_pred = tf.equal(tf.cast(tf.round(predictions), tf.int32), labels_)
+    accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+    
+def get_batches(x, y, batch_size):
+    n_batches = len(x)//batch_size
+    x, y = x[:n_batches*batch_size], y[:n_batches*batch_size]
+    for ii in range(0, len(x), batch_size):
+        yield x[ii:ii+batch_size], y[ii:ii+batch_size]
 
-    #Write summary to Tensorboard
-   if (i % 50 == 0):
-       summary = sess.run(merged, {input_data: nextBatch, labels: nextBatchLabels})
-       writer.add_summary(summary, i)
+epochs = 10
 
-    #Save the network every 10,000 training iterations
-   if (i % 10000 == 0 and i != 0):
-       save_path = saver.save(sess, "C:/Users/Vaio/Desktop/Sentiment Analysis/models/pretrained_lstm.ckpt", global_step=i)
-       print("Saved to %s" % save_path)
-writer.close()
-
-sess = tf.InteractiveSession()
+# with graph.as_default():
 saver = tf.train.Saver()
-saver.restore(sess, tf.train.latest_checkpoint('C:/Users/Vaio/Desktop/Sentiment Analysis/models'))
 
-iterations = 10
-for i in range(iterations):
-    nextBatch, nextBatchLabels = getTestBatch();
-    print("Accuracy for this batch:", (sess.run(accuracy, {input_data: nextBatch, labels: nextBatchLabels})) * 100)
-'''
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    train_writer = tf.summary.FileWriter('C:/Users/Vaio/Desktop/Sentiment Analysis/logs/tb/train', sess.graph)
+    test_writer = tf.summary.FileWriter('C:/Users/Vaio/Desktop/Sentiment Analysis/logs/tb/test', sess.graph)
+    iteration = 1
+    for e in range(epochs):
+        train_acc = []
+        state = sess.run(initial_state)
+        
+        for ii, (x, y) in enumerate(get_batches(train_x, train_y, batch_size), 1):
+            feed = {inputs_: x,
+                    labels_: y[:, None],
+                    keep_prob: 0.5,
+                    initial_state: state}
+            summary, batch_acc, loss, state, _ = sess.run([merged, accuracy, cost, final_state, optimizer], feed_dict=feed)
+            train_acc.append(batch_acc)
+            
+            train_writer.add_summary(summary, iteration)
+        
+            if iteration%5==0:
+                print("Epoch: {}/{} |".format(e, epochs),
+                      "Iteration: {} |".format(iteration),
+                      "Train loss: {:.3f} |".format(loss),
+                      "Training accuracy: {:.3f}".format(np.mean(train_acc)))
+
+            if iteration%25==0:
+                val_acc = []
+                val_state = sess.run(cell.zero_state(batch_size, tf.float32))
+                for x, y in get_batches(val_x, val_y, batch_size):
+                    feed = {inputs_: x,
+                            labels_: y[:, None],
+                            keep_prob: 1,
+                            initial_state: val_state}
+
+                    summary, batch_acc, val_state = sess.run([merged, accuracy, final_state], feed_dict=feed)
+                    val_acc.append(batch_acc)
+                print("Validation accuracy: {:.3f}".format(np.mean(val_acc)))
+            iteration +=1
+            test_writer.add_summary(summary, iteration)
+            saver.save(sess, "C:/Users/Vaio/Desktop/Sentiment Analysis/checkpoints/sentiment.ckpt")
+    saver.save(sess, "C:/Users/Vaio/Desktop/Sentiment Analysis/checkpoints/sentiment.ckpt")
 
 print("Training time: %s seconds" % (time.time() - start_time))
