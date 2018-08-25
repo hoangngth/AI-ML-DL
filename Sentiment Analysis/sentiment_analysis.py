@@ -64,7 +64,6 @@ print('The total number of words in the files is', sum(numWords))
 print('The average number of words in the files is', sum(numWords)/len(numWords))
 print('Finished labeling %d files' %len(labels))
 
-
 # Draw histogram of words in file
 plt.hist(numWords, 50)
 plt.xlabel('Sequence Length')
