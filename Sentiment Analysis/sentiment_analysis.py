@@ -239,4 +239,4 @@ with tf.Session() as sess:
             saver.save(sess, "C:/Users/Vaio/Desktop/Sentiment Analysis/checkpoints/sentiment.ckpt")
     saver.save(sess, "C:/Users/Vaio/Desktop/Sentiment Analysis/checkpoints/sentiment.ckpt")
 
-print("Training time: %s seconds" % (time.time() - start_time))
+print("Total training time: %s seconds" % (time.time() - start_time))
