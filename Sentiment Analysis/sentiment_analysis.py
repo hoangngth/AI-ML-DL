@@ -196,6 +196,7 @@ epochs = 10
 # with graph.as_default():
 saver = tf.train.Saver()
 
+print('Training LSTM model...')
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     train_writer = tf.summary.FileWriter('C:/Users/Vaio/Desktop/Sentiment Analysis/logs/tb/train', sess.graph)
