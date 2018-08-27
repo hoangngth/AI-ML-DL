@@ -140,10 +140,10 @@ print("Train set: \t\t{}".format(train_x.shape),
 print("Label set: \t\t{}".format(train_y.shape), 
       "\nValidation label set: \t{}".format(val_y.shape))
 
-lstm_units = 64
-lstm_layers = 2
-batch_size = 256
-learning_rate = 0.005
+lstm_units = 20
+lstm_layers = 1
+batch_size = 50
+learning_rate = 0.001
 n_words = len(wordList)
 embed_size = wordVectors.shape[1] # The dimension of every word's vector
 
@@ -182,7 +182,7 @@ with tf.name_scope('train'):
 
 merged = tf.summary.merge_all()
 
-with tf.name_scope('training_validation'):
+with tf.name_scope('accuracy'):
     correct_pred = tf.equal(tf.cast(tf.round(predictions), tf.int32), labels_)
     accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
     
@@ -192,7 +192,7 @@ def get_batches(x, y, batch_size):
     for ii in range(0, len(x), batch_size):
         yield x[ii:ii+batch_size], y[ii:ii+batch_size]
 
-epochs = 10
+epochs = 5
 
 # with graph.as_default():
 saver = tf.train.Saver()
