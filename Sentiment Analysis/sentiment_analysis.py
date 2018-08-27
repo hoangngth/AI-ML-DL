@@ -171,7 +171,7 @@ with tf.name_scope("RNN_forward"):
     outputs, final_state = tf.nn.dynamic_rnn(cell, embed, initial_state=initial_state)
     
 with tf.name_scope('predictions'):
-    predictions = tf.contrib.layers.fully_connected(outputs[:, -1], 1, activation_fn=tf.sigmoid) # Sigmoid/Tanh/Softsign
+    predictions = tf.contrib.layers.fully_connected(outputs[:, -1], 1, activation_fn=tf.nn.softsign) # Sigmoid/Tanh/Softsign
     tf.summary.histogram('predictions', predictions)
 with tf.name_scope('cost'):
     cost = tf.losses.mean_squared_error(labels_, predictions)
