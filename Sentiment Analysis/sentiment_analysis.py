@@ -100,7 +100,7 @@ for pf in positiveFiles:
        fileCounter = fileCounter + 1 
 
 fileCounter = 0
-for nf in positiveFiles:
+for nf in negativeFiles:
    with open(nf, "r", encoding='utf-8') as f:
        indexCounter = 0
        line = f.readline()
