@@ -15,7 +15,7 @@ start_time = time.time()
 print("Training Sentiment Analysis Model...")
 
 # Load word list
-model_w2v = gensim.models.KeyedVectors.load_word2vec_format('C:/Users/Vaio/Desktop/Sentiment Analysis/Word2Vec/trained_word2vec/VNESEw2v.bin', binary=True)
+model_w2v = gensim.models.KeyedVectors.load_word2vec_format('C:/Users/Huy/Desktop/Sentiment Analysis/word2vec/VNESEw2v.bin', binary=True)
 vocabulary = model_w2v.vocab
 wordList = np.array
 for word in vocabulary:
@@ -29,8 +29,8 @@ print('Loaded word vectors. Shape: ')
 print(wordVectors.shape)
 
 # Load negative and positive files
-dirPos = 'C:/Users/Vaio/Desktop/Sentiment Analysis/Datasets/data_train/train/pos/'
-dirNeg = 'C:/Users/Vaio/Desktop/Sentiment Analysis/Datasets/data_train/train/neg/'
+dirPos = 'C:/Users/Huy/Desktop/Sentiment Analysis/dataset/data_train/train/pos/'
+dirNeg = 'C:/Users/Huy/Desktop/Sentiment Analysis/dataset/data_train/train/neg/'
 positiveFiles = [dirPos + f for f in listdir(dirPos) if isfile(join(dirPos, f))]
 negativeFiles = [dirNeg + f for f in listdir(dirNeg) if isfile(join(dirNeg, f))]
 
@@ -78,7 +78,7 @@ def clean_text(text):
     text = re.sub(r' +',' ', text) # Remove all duplicate white spaces
     text = text.lower()
     return text
-
+'''
 # Reviews x maxSeqLength matrix (30000x200)
 print('Training Feature Matrix...')
 features = np.zeros((numFiles, maxSeqLength), dtype='int32')
@@ -116,9 +116,10 @@ for nf in positiveFiles:
                break
        fileCounter = fileCounter + 1 
 
-np.save('C:/Users/Vaio/Desktop/Sentiment Analysis/Datasets/features_matrix/VNESEfeaturesmatrix.npy', features)
+np.save('C:/Users/Huy/Desktop/Sentiment Analysis/dataset/features_matrix/VNESEfeaturesmatrix.npy', features)
 print('Feature Matrix completed')
-features = np.load('C:/Users/Vaio/Desktop/Sentiment Analysis/Datasets/features_matrix/VNESEfeaturesmatrix.npy') # numFiles x maxSeqLength
+'''
+features = np.load('C:/Users/Huy/Desktop/Sentiment Analysis/dataset/features_matrix/VNESEfeaturesmatrix.npy') # numFiles x maxSeqLength
 
 # Training set and Validation set splitting
 split_fractor = 0.8
@@ -159,7 +160,7 @@ with tf.name_scope('embeddings'):
     
 def lstm_cell():
     cell = tf.contrib.rnn.BasicLSTMCell(lstm_units)
-    cell = tf.contrib.rnn.DropoutWapper(cell, output_keep_prob=keep_prob)
+    cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=keep_prob)
     return cell
     
 with tf.name_scope("RNN_layers"):
@@ -199,8 +200,8 @@ saver = tf.train.Saver()
 print('Training LSTM model...')
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-    train_writer = tf.summary.FileWriter('C:/Users/Vaio/Desktop/Sentiment Analysis/logs/tb/train', sess.graph)
-    test_writer = tf.summary.FileWriter('C:/Users/Vaio/Desktop/Sentiment Analysis/logs/tb/test', sess.graph)
+    train_writer = tf.summary.FileWriter('C:/Users/Huy/Desktop/Sentiment Analysis/logs/train', sess.graph)
+    test_writer = tf.summary.FileWriter('C:/Users/Huy/Desktop/Sentiment Analysis/logs/test', sess.graph)
     iteration = 1
     for e in range(epochs):
         train_acc = []
@@ -236,7 +237,7 @@ with tf.Session() as sess:
                 print("Validation accuracy: {:.3f}".format(np.mean(val_acc)))
             iteration +=1
             test_writer.add_summary(summary, iteration)
-            saver.save(sess, "C:/Users/Vaio/Desktop/Sentiment Analysis/checkpoints/sentiment.ckpt")
-    saver.save(sess, "C:/Users/Vaio/Desktop/Sentiment Analysis/checkpoints/sentiment.ckpt")
+            saver.save(sess, "C:/Users/Huy/Desktop/Sentiment Analysis/checkpoint/sentiment.ckpt")
+    saver.save(sess, "C:/Users/Huy/Desktop/Sentiment Analysis/checkpoint/sentiment.ckpt")
 
 print("Total training time: %s seconds" % (time.time() - start_time))
