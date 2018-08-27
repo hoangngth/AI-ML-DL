@@ -15,7 +15,7 @@ start_time = time.time()
 print("Training Sentiment Analysis Model...")
 
 # Load word list
-model_w2v = gensim.models.KeyedVectors.load_word2vec_format('C:/Users/Huy/Desktop/Sentiment Analysis/word2vec/VNESEw2v.bin', binary=True)
+model_w2v = gensim.models.KeyedVectors.load_word2vec_format('C:/Users/Vaio/Desktop/Sentiment Analysis/word2vec/trained_word2vec/VNESEw2v.bin', binary=True)
 vocabulary = model_w2v.vocab
 wordList = np.array
 for word in vocabulary:
@@ -29,8 +29,8 @@ print('Loaded word vectors. Shape: ')
 print(wordVectors.shape)
 
 # Load negative and positive files
-dirPos = 'C:/Users/Huy/Desktop/Sentiment Analysis/dataset/data_train/train/pos/'
-dirNeg = 'C:/Users/Huy/Desktop/Sentiment Analysis/dataset/data_train/train/neg/'
+dirPos = 'C:/Users/Vaio/Desktop/Sentiment Analysis/dataset/data_train/train/pos/'
+dirNeg = 'C:/Users/Vaio/Desktop/Sentiment Analysis/dataset/data_train/train/neg/'
 positiveFiles = [dirPos + f for f in listdir(dirPos) if isfile(join(dirPos, f))]
 negativeFiles = [dirNeg + f for f in listdir(dirNeg) if isfile(join(dirNeg, f))]
 
@@ -78,7 +78,7 @@ def clean_text(text):
     text = re.sub(r' +',' ', text) # Remove all duplicate white spaces
     text = text.lower()
     return text
-'''
+
 # Reviews x maxSeqLength matrix (30000x200)
 print('Training Feature Matrix...')
 features = np.zeros((numFiles, maxSeqLength), dtype='int32')
@@ -99,7 +99,6 @@ for pf in positiveFiles:
                break
        fileCounter = fileCounter + 1 
 
-fileCounter = 0
 for nf in negativeFiles:
    with open(nf, "r", encoding='utf-8') as f:
        indexCounter = 0
@@ -116,10 +115,10 @@ for nf in negativeFiles:
                break
        fileCounter = fileCounter + 1 
 
-np.save('C:/Users/Huy/Desktop/Sentiment Analysis/dataset/features_matrix/VNESEfeaturesmatrix.npy', features)
+np.save('C:/Users/Vaio/Desktop/Sentiment Analysis/dataset/features_matrix/VNESEfeaturesmatrix.npy', features)
 print('Feature Matrix completed')
-'''
-features = np.load('C:/Users/Huy/Desktop/Sentiment Analysis/dataset/features_matrix/VNESEfeaturesmatrix.npy') # numFiles x maxSeqLength
+
+features = np.load('C:/Users/Vaio/Desktop/Sentiment Analysis/dataset/features_matrix/VNESEfeaturesmatrix.npy') # numFiles x maxSeqLength
 
 # Training set and Validation set splitting
 split_fractor = 0.8
