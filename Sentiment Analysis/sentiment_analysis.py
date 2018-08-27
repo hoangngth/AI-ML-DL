@@ -182,7 +182,7 @@ with tf.name_scope('train'):
 
 merged = tf.summary.merge_all()
 
-with tf.name_scope('training and validation'):
+with tf.name_scope('training_validation'):
     correct_pred = tf.equal(tf.cast(tf.round(predictions), tf.int32), labels_)
     accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
     
