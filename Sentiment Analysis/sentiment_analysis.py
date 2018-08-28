@@ -79,7 +79,7 @@ def clean_text(text):
     text = re.sub(r' +',' ', text) # Remove all duplicate white spaces
     text = text.lower()
     return text
-'''
+
 # Reviews x maxSeqLength matrix (30000x200)
 print('Training Id Matrix...')
 ids = np.zeros((numFiles, maxSeqLength), dtype='int32')
@@ -94,7 +94,7 @@ for pf in positiveFiles:
            try:
                ids[fileCounter][indexCounter] = wordList.index(word)
            except ValueError:
-               ids[fileCounter][indexCounter] = randint(0, len(wordList)-1) #Vector for unkown words
+               ids[fileCounter][indexCounter] = 0 #Vector for unkown words
            indexCounter = indexCounter + 1
            if indexCounter >= maxSeqLength:
                break
@@ -110,16 +110,16 @@ for nf in negativeFiles:
            try:
                ids[fileCounter][indexCounter] = wordList.index(word)
            except ValueError:
-               ids[fileCounter][indexCounter] = randint(0, len(wordList)-1) #Vector for unkown words
+               ids[fileCounter][indexCounter] = 0 #Vector for unkown words
            indexCounter = indexCounter + 1
            if indexCounter >= maxSeqLength:
                break
        fileCounter = fileCounter + 1 
 
-np.save(os.getcwd()+'/dataset/features_matrix/VNESEid_matrix.npy', ids)
+np.save(os.getcwd()+'/dataset/id_matrix/VNESEid_matrix.npy', ids)
 print('ID Matrix completed')
-'''
-ids = np.load(os.getcwd()+'/dataset/features_matrix/VNESEid_matrix.npy') # numFiles x maxSeqLength
+
+ids = np.load(os.getcwd()+'/dataset/id_matrix/VNESEid_matrix.npy') # numFiles x maxSeqLength
 
 # Training set and Validation set splitting
 split_fractor = 0.8
@@ -155,8 +155,8 @@ with tf.name_scope('input'):
     keep_prob = tf.placeholder(tf.float32, name = 'keep_prob')
     
 with tf.name_scope('embeddings'):
-    embedding = tf.Variable(tf.random_uniform((n_words, embed_size), -1, 1))
-    embed = tf.nn.embedding_lookup(embedding, inputs_)
+    #embedding = tf.Variable(tf.random_uniform((n_words, embed_size), -1, 1))
+    embed = tf.nn.embedding_lookup(wordVectors, inputs_)
     
 def lstm_cell():
     cell = tf.contrib.rnn.BasicLSTMCell(lstm_units)
