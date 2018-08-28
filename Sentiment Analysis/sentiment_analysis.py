@@ -79,10 +79,10 @@ def clean_text(text):
     text = re.sub(r' +',' ', text) # Remove all duplicate white spaces
     text = text.lower()
     return text
-
+'''
 # Reviews x maxSeqLength matrix (30000x200)
-print('Converting Id Matrix...')
-features = np.zeros((numFiles, maxSeqLength), dtype='int32')
+print('Training Id Matrix...')
+ids = np.zeros((numFiles, maxSeqLength), dtype='int32')
 fileCounter = 0
 for pf in positiveFiles:
    with open(pf, "r", encoding='utf-8') as f:
@@ -92,9 +92,9 @@ for pf in positiveFiles:
        split = cleanedLine.split()
        for word in split:
            try:
-               features[fileCounter][indexCounter] = wordList.index(word)
+               ids[fileCounter][indexCounter] = wordList.index(word)
            except ValueError:
-               features[fileCounter][indexCounter] = randint(0, len(wordList)-1) #Vector for unkown words
+               ids[fileCounter][indexCounter] = randint(0, len(wordList)-1) #Vector for unkown words
            indexCounter = indexCounter + 1
            if indexCounter >= maxSeqLength:
                break
@@ -108,26 +108,26 @@ for nf in negativeFiles:
        split = cleanedLine.split()
        for word in split:
            try:
-               features[fileCounter][indexCounter] = wordList.index(word)
+               ids[fileCounter][indexCounter] = wordList.index(word)
            except ValueError:
-               features[fileCounter][indexCounter] = randint(0, len(wordList)-1) #Vector for unkown words
+               ids[fileCounter][indexCounter] = randint(0, len(wordList)-1) #Vector for unkown words
            indexCounter = indexCounter + 1
            if indexCounter >= maxSeqLength:
                break
        fileCounter = fileCounter + 1 
 
 np.save(os.getcwd()+'/dataset/features_matrix/VNESEid_matrix.npy', ids)
-print('Feature Matrix completed')
-
+print('ID Matrix completed')
+'''
 ids = np.load(os.getcwd()+'/dataset/features_matrix/VNESEid_matrix.npy') # numFiles x maxSeqLength
 
 # Training set and Validation set splitting
 split_fractor = 0.8
-split_index = int(split_fractor * len(features)) # 24000
-splitter = len(features)//2 # 15000
+split_index = int(split_fractor * len(ids)) # 24000
+splitter = len(ids)//2 # 15000
 
-train_x_pos, val_x_pos = features[:(split_index//2)], features[(split_index//2):splitter] # :12000, 12000:15000
-train_x_neg, val_x_neg = features[splitter:int(split_index + splitter * (1-split_fractor))], features[int(split_index + splitter * (1-split_fractor)):] # 15000:(24000+3000), (24000+3000): 
+train_x_pos, val_x_pos = ids[:(split_index//2)], ids[(split_index//2):splitter] # :12000, 12000:15000
+train_x_neg, val_x_neg = ids[splitter:int(split_index + splitter * (1-split_fractor))], ids[int(split_index + splitter * (1-split_fractor)):] # 15000:(24000+3000), (24000+3000): 
 train_x, val_x = np.append(train_x_pos, train_x_neg, axis=0), np.append(val_x_pos, val_x_neg, axis=0)
 
 train_y_pos, val_y_pos = labels[:(split_index//2)], labels[(split_index//2):splitter] # :12000, 12000:15000
@@ -140,9 +140,9 @@ print("Train set: \t\t{}".format(train_x.shape),
 print("Label set: \t\t{}".format(train_y.shape), 
       "\nValidation label set: \t{}".format(val_y.shape))
 
-lstm_units = 20
+lstm_units = 128
 lstm_layers = 1
-batch_size = 50
+batch_size = 32
 learning_rate = 0.001
 n_words = len(wordList)
 embed_size = wordVectors.shape[1] # The dimension of every word's vector
@@ -170,11 +170,17 @@ with tf.name_scope("RNN_layers"):
 with tf.name_scope("RNN_forward"):
     outputs, final_state = tf.nn.dynamic_rnn(cell, embed, initial_state=initial_state)
     
+with tf.name_scope("Regularizer"):
+    lambda_l2 = 0.005
+    tv = tf.trainable_variables()
+    regularization = lambda_l2 * sum([tf.nn.l2_loss(v) for v in tv])
+    
 with tf.name_scope('predictions'):
     predictions = tf.contrib.layers.fully_connected(outputs[:, -1], 1, activation_fn=tf.nn.softsign) # Sigmoid/Tanh/Softsign
     tf.summary.histogram('predictions', predictions)
+    
 with tf.name_scope('cost'):
-    cost = tf.losses.mean_squared_error(labels_, predictions)
+    cost = tf.losses.mean_squared_error(labels_, predictions) + regularization
     tf.summary.scalar('cost', cost)
 
 with tf.name_scope('train'):
@@ -223,7 +229,7 @@ with tf.Session() as sess:
                       "Train loss: {:.3f} |".format(loss),
                       "Training accuracy: {:.3f}".format(np.mean(train_acc)))
 
-            if iteration%25==0:
+            if iteration%10==0:
                 val_acc = []
                 val_state = sess.run(cell.zero_state(batch_size, tf.float32))
                 for x, y in get_batches(val_x, val_y, batch_size):
@@ -232,9 +238,10 @@ with tf.Session() as sess:
                             keep_prob: 1,
                             initial_state: val_state}
 
-                    summary, batch_acc, val_state = sess.run([merged, accuracy, final_state], feed_dict=feed)
+                    summary, batch_acc, loss, val_state = sess.run([merged, accuracy, cost, final_state], feed_dict=feed)
                     val_acc.append(batch_acc)
-                print("Validation accuracy: {:.3f}".format(np.mean(val_acc)))
+                print("Validation loss: {:.3f} |".format(loss),
+                      "Validation accuracy: {:.3f}".format(np.mean(val_acc)))
             iteration +=1
             test_writer.add_summary(summary, iteration)
             saver.save(sess, os.getcwd()+'/checkpoint/sentiment.ckpt')
