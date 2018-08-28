@@ -81,7 +81,7 @@ def clean_text(text):
     return text
 
 # Reviews x maxSeqLength matrix (30000x200)
-print('Training Feature Matrix...')
+print('Converting Id Matrix...')
 features = np.zeros((numFiles, maxSeqLength), dtype='int32')
 fileCounter = 0
 for pf in positiveFiles:
@@ -116,10 +116,10 @@ for nf in negativeFiles:
                break
        fileCounter = fileCounter + 1 
 
-np.save(os.getcwd()+'/dataset/features_matrix/VNESEfeaturesmatrix.npy', features)
+np.save(os.getcwd()+'/dataset/features_matrix/VNESEid_matrix.npy', ids)
 print('Feature Matrix completed')
 
-features = np.load(os.getcwd()+'/dataset/features_matrix/VNESEfeaturesmatrix.npy') # numFiles x maxSeqLength
+ids = np.load(os.getcwd()+'/dataset/features_matrix/VNESEid_matrix.npy') # numFiles x maxSeqLength
 
 # Training set and Validation set splitting
 split_fractor = 0.8
