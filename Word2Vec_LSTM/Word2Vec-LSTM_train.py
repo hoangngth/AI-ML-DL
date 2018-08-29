@@ -13,14 +13,12 @@ print('Training Word2Vec-LSTM Model...')
 with open(getcwd()+'/dataset/amazon_sentiment/sentence.txt', encoding='utf-8', errors='ignore') as f:
     dataset = f.readlines()
 dataset = [x.strip('\t\n') for x in dataset]
-print(len(dataset))
 
 # define label
 with open(getcwd()+'/dataset/amazon_sentiment/label.txt') as f:
     train_Y = f.readlines()
 train_Y = [x.strip() for x in train_Y]
 train_Y = list(map(int, train_Y))
-print(len(train_Y))
 
 # prepare tokenizer
 t = Tokenizer()
@@ -34,17 +32,16 @@ train_X = pad_sequences(encoded_dataset, maxlen=max_len, padding='post')
 
 # load the whole embedding into memory
 embedding_index = dict()
-f = open(getcwd()+'/glove.6B.100d.txt', encoding='utf-8')
+f = open(getcwd()+'/deps.words', encoding='utf-8')
 for line in f: 
     values = line.split()
     word = values[0]
     coefs = np.asarray(values[1:], dtype='float32')
     embedding_index[word] = coefs
-print(len(embedding_index))
 f.close()
 
 # create a weight matrix for words in training docs
-embedding_size = 100
+embedding_size = 300
 embedding_matrix = np.zeros((vocab_size, embedding_size)) # (15,100)
 for word, i in t.word_index.items():
     embedding_vector = embedding_index.get(word)
@@ -54,7 +51,9 @@ for word, i in t.word_index.items():
 # define model
 model = Sequential()
 model.add(Embedding(vocab_size, embedding_size, weights=[embedding_matrix], input_length=max_len, trainable=False))
-model.add(LSTM(64, batch_size=100))
+model.add(LSTM(64, return_sequences=True, input_shape=(max_len, 3)))
+model.add(LSTM(64, return_sequences=True))
+model.add(LSTM(64, return_sequences=False))
 model.add(Dropout(0.5))
 model.add(Dense(1, activation='sigmoid'))
 
@@ -76,7 +75,7 @@ model.fit(train_x, train_y, validation_data = (val_x, val_y), epochs=10, verbose
 scores = model.evaluate(test_x, test_y, verbose=0)
 
 print('Test on %d samples' %len(test_x))
-print('Test accuracy: %.2f%%' % (scores[1]*100))
+print('Test accuracy: %.2f%%' % (scores[1]))
 
 model.save(getcwd()+'/Word2Vec-LSTM_model.h5')
 print('Model saved to '+getcwd()+'/Word2Vec-LSTM_model.h5')
