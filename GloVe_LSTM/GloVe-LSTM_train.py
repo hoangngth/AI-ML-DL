@@ -4,7 +4,7 @@ from os import getcwd
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras import Sequential
-from keras.layers import Embedding, LSTM, Dense, Dropout
+from keras.layers import Embedding, LSTM, Dense, Dropout, TimeDistributed, Activation
 
 start_time = time.time()
 print('Training GloVe-LSTM Model...')
@@ -38,12 +38,11 @@ for line in f:
     word = values[0]
     coefs = np.asarray(values[1:], dtype='float32')
     embedding_index[word] = coefs
-print(len(embedding_index))
 f.close()
 
 # create a weight matrix for words in training docs
 embedding_size = 100
-embedding_matrix = np.zeros((vocab_size, embedding_size)) # (15,100)
+embedding_matrix = np.zeros((vocab_size, embedding_size))
 for word, i in t.word_index.items():
     embedding_vector = embedding_index.get(word)
     if embedding_vector is not None:
@@ -52,9 +51,13 @@ for word, i in t.word_index.items():
 # define model
 model = Sequential()
 model.add(Embedding(vocab_size, embedding_size, weights=[embedding_matrix], input_length=max_len, trainable=False))
-model.add(LSTM(64, batch_size=100))
+# Stacked LSTM
+model.add(LSTM(64, return_sequences=True, input_shape=(max_len, 3)))
+model.add(LSTM(64, return_sequences=True))
+model.add(LSTM(64, return_sequences=False))
 model.add(Dropout(0.5))
-model.add(Dense(1, activation='sigmoid'))
+model.add(Dense(1))
+model.add(Activation('sigmoid'))
 
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 print(model.summary())
