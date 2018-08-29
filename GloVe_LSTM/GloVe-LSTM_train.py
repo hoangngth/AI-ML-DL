@@ -12,12 +12,12 @@ print('Training GloVe-LSTM Model...')
 # define dataset
 with open(getcwd()+'/dataset/amazon_sentiment/sentence.txt', encoding='utf-8', errors='ignore') as f:
     dataset = f.readlines()
-dataset = [x.strip('\t\n') for x in dataset]
+dataset = [x.strip('\n') for x in dataset]
 
 # define label
 with open(getcwd()+'/dataset/amazon_sentiment/label.txt') as f:
     train_Y = f.readlines()
-train_Y = [x.strip() for x in train_Y]
+train_Y = [x.strip('\n') for x in train_Y]
 train_Y = list(map(int, train_Y))
 
 # prepare tokenizer
