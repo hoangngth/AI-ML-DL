@@ -10,18 +10,15 @@ start_time = time.time()
 print('Training GloVe-LSTM Model...')
 
 # define dataset
-dataset = ['Well done!',
-		'Good work',
-		'Great effort',
-		'nice work',
-		'Excellent!',
-		'Weak',
-		'Poor effort!',
-		'not good',
-		'poor work',
-		'Could have done better.']
-# define class labels
-train_Y = np.array([1,1,1,1,1,0,0,0,0,0])
+with open(getcwd()+'/dataset/amazon_sentiment/sentence.txt', encoding='utf-8', errors='ignore') as f:
+    dataset = f.readlines()
+dataset = [x.strip('\t\n') for x in dataset]
+
+# define label
+with open(getcwd()+'/dataset/amazon_sentiment/label.txt') as f:
+    train_Y = f.readlines()
+train_Y = [x.strip() for x in train_Y]
+train_Y = list(map(int, train_Y))
 
 # prepare tokenizer
 t = Tokenizer()
@@ -30,7 +27,7 @@ vocab_size = len(t.word_index)+1
 
 # integer encode the documents
 encoded_dataset = t.texts_to_sequences(dataset)
-max_len = 4
+max_len = 20
 train_X = pad_sequences(encoded_dataset, maxlen=max_len, padding='post')
 
 # load the whole embedding into memory
@@ -41,19 +38,20 @@ for line in f:
     word = values[0]
     coefs = np.asarray(values[1:], dtype='float32')
     embedding_index[word] = coefs
+print(len(embedding_index))
 f.close()
 
 # create a weight matrix for words in training docs
 embedding_size = 100
 embedding_matrix = np.zeros((vocab_size, embedding_size)) # (15,100)
 for word, i in t.word_index.items():
-	embedding_vector = embedding_index.get(word)
-	if embedding_vector is not None:
-		embedding_matrix[i] = embedding_vector
+    embedding_vector = embedding_index.get(word)
+    if embedding_vector is not None:
+        embedding_matrix[i] = embedding_vector
         
 # define model
 model = Sequential()
-model.add(Embedding(vocab_size, embedding_size, weights=[embedding_matrix], input_length=4, trainable=False))
+model.add(Embedding(vocab_size, embedding_size, weights=[embedding_matrix], input_length=max_len, trainable=False))
 model.add(LSTM(64, batch_size=100))
 model.add(Dropout(0.5))
 model.add(Dense(1, activation='sigmoid'))
@@ -71,8 +69,8 @@ valtest_x, valtest_y = train_X[int(train_valtest*len(train_X)):], train_Y[int(tr
 val_x, val_y = valtest_x[:int(val_test*len(valtest_x))], valtest_y[:int(val_test*len(valtest_y))]
 test_x, test_y = valtest_x[int(val_test*len(valtest_x)):], valtest_y[int(val_test*len(valtest_y)):]
 
-model.fit(train_x, train_y, validation_data = (val_x, val_y), epochs=10, verbose=1)
 
+model.fit(train_x, train_y, validation_data = (val_x, val_y), epochs=10, verbose=1)
 scores = model.evaluate(test_x, test_y, verbose=0)
 
 print('Test on %d samples' %len(test_x))
